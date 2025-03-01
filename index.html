@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家庭影院设计工具</title>
+    <style>
+        body {
+           max-width: 800px; /* 电脑端最大宽度 */
+            padding: 15px;
+            font-size: 14px;
+            background-color: #ffffff;
+        }
+
+        /* 可折叠模块样式 */
+        .collapsible {
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .collapsible-header {
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s;
+        }
+        .collapsible-header:hover {
+            background: #f8f9fa;
+        }
+        .collapsible-header h2 {
+            margin: 0;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .arrow {
+            transition: transform 0.3s;
+            color: #666;
+            font-size: 0.9em;
+        }
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .collapsible.active .collapsible-content {
+            max-height: 2000px; /* 足够大的值容纳内容 */
+        }
+        .collapsible.active .arrow {
+            transform: rotate(180deg);
+        }
+
+        /* 计算器内容样式 */
+        .calculator-content {
+            padding: 20px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 4px;
+        }
+        .result-item {
+            margin: 10px 0;
+        }
+        .unit {
+            color: #666;
+            font-size: 0.9em;
+        }
+        /* 移动端适配 */
+@media (max-width: 480px) {
+    body {
+        max-width: 100%;
+        padding: 10px;
+        font-size: 16px; /* 手机端增大字号 */
+    }
+    
+    .collapsible-header h2 {
+        font-size: 1.1em;
+    }
+    
+    /* 输入框适配 */
+    .input-group.units > div,
+    .input-group.grid-3 {
+        flex: 1 1 100% !important; /* 强制单列布局 */
+    }
+    
+    /* 三列布局转单列 */
+    [style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+        gap: 8px;
+    }
+    
+    /* 按钮尺寸优化 */
+    button {
+        padding: 12px 15px;
+        font-size: 0.95em;
+    }
+}
+
+/* 电脑端优化 */
+@media (min-width: 768px) {
+    .calculator-content {
+        padding: 25px;
+    }
+    
+    /* 双列布局优化 */
+    .input-group.grid-2 {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* 通用响应式调整 */
+.calculator {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+input, select {
+    box-sizing: border-box;
+}
+
+/* 图片响应式处理 */
+.illustration-img {
+    max-width: 100%;
+    height: auto;
+    margin: 15px 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+    </style>
+</head>
+<body>
+    <!-- 基础计算模块 -->
+    <div class="collapsible" id="basicCalc">
+        <div class="collapsible-header" onclick="toggleCollapse('basicCalc')">
+            <h2>通过屏幕计算观影距离 <span class="arrow">▼</span></h2>
+        </div>
+        <div class="collapsible-content">
+            <div class="calculator-content">
+                <div class="input-group">
+                    <label for="diagonal">屏幕对角线尺寸（英寸）:</label>
+                    <input type="number" id="diagonal" step="0.1" placeholder="输入英寸尺寸">
+                </div>
+
+                <div class="input-group">
+                    <label for="ratio">选择宽高比:</label>
+                    <select id="ratio">
+                        <option value="16:9">16:9 (常见电视/流媒体)</option>
+                        <option value="16:10">16:10 (常见电脑屏幕)</option>
+                        <option value="21:9">21:9 (超宽屏)</option>
+                        <option value="4:3">4:3 (传统电视)</option>
+                        <option value="2.35:1">2.35:1 (电影宽银幕)</option>
+                    </select>
+                </div>
+
+                <button onclick="calculate()">计算</button>
+
+                <div class="results">
+                    <h3>计算结果</h3>
+                    <div class="result-item">
+                        屏幕宽度: <span id="widthInch">0.00</span> 英寸 
+                        (<span id="widthCm">0.00</span> 厘米)
+                    </div>
+                    <div class="result-item">
+                        屏幕高度: <span id="heightInch">0.00</span> 英寸 
+                        (<span id="heightCm">0.00</span> 厘米)
+                    </div>
+                    <div class="result-item">
+                        <div>建议观影距离：</div>
+                        <div>60° 视角: <span id="distance60">0.00</span> 米</div>
+                        <div>45° 视角: <span id="distance45">0.00</span> 米</div>
+                        <div>36° 视角: <span id="distance36">0.00</span> 米</div>
+                        <div class="unit">（基于THX推荐视角标准）</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 高级计算模块 -->
+    <div class="collapsible" id="advCalc">
+        <div class="collapsible-header" onclick="toggleCollapse('advCalc')">
+            <h2>通过观影距离计算屏幕 <span class="arrow">▼</span></h2>
+        </div>
+        <div class="collapsible-content">
+            <div class="calculator-content">
+                <!-- 距离反推计算 -->
+                <div class="input-group">
+                    <label>距离反推模式：</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="number" id="distance_cm" placeholder="观影距离 (cm)" style="flex: 1;">
+                        <select id="angle" style="flex: 1;">
+                            <option value="60">60° 视角</option>
+                            <option value="45">45° 视角</option>
+                            <option value="36">36° 视角</option>
+                        </select>
+                    </div>
+                    <select id="ratioReverse" style="margin-top: 10px;">
+                        <option value="16:9">16:9 比例</option>
+                        <option value="21:9">21:9 比例</option>
+                        <option value="2.35:1">2.35:1 比例</option>
+                    </select>
+                    <button onclick="calculateFromDistance()" style="margin-top: 10px;">计算屏幕尺寸</button>
+                    <div class="results" style="margin-top: 15px;">
+                        <div class="result-item">
+                            推荐屏幕尺寸：
+
+                            <span id="resultDiagonal">0.00</span> 英寸
+
+                            <span id="resultDimensions">0×0 cm</span>
+                        </div>
+                    </div>
+                </div>
+
+                <hr style="margin: 20px 0; border-color: #ddd;">
+
+                <!-- 尺寸推算模式 -->
+                <div class="input-group">
+                    <label>尺寸推算模式：</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <input type="number" id="inputWidth" placeholder="输入宽度 (cm)" style="flex: 1;">
+                        <button onclick="calcFromWidth()" style="width: auto;">计算高度</button>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="number" id="inputHeight" placeholder="输入高度 (cm)" style="flex: 1;">
+                        <button onclick="calcFromHeight()" style="width: auto;">计算宽度</button>
+                    </div>
+                    <select id="ratioCalc" style="margin-top: 10px;">
+                        <option value="16:9">16:9 比例</option>
+                        <option value="21:9">21:9 比例</option>
+                        <option value="2.35:1">2.35:1 比例</option>
+                    </select>
+                    <div class="results" style="margin-top: 15px;">
+                        <div class="result-item">
+                            对角线尺寸：<span id="calcDiagonal">0.00</span> 英寸
+
+                            完整尺寸：<span id="calcDimensions">0×0 cm</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 音箱摆位模块 -->
+    <div class="collapsible" id="speakerCalc">
+        <div class="collapsible-header" onclick="toggleCollapse('speakerCalc')">
+            <h2>通过听音距离计算音箱宽度 <span class="arrow">▼</span></h2>
+        </div>
+        <div class="collapsible-content">
+            <div class="calculator-content">
+                <div class="input-group">
+                    <label for="listeningDistance">听音距离（厘米）:</label>
+                    <input type="number" id="listeningDistance" placeholder="输入听音位置到影视墙距离">
+                </div>
+
+                <button onclick="calculateSpeakerPosition()">计算音箱间距</button>
+
+                <div class="results">
+                    <h3>推荐主音箱间距</h3>
+                    <div class="result-item">
+                        理想摆位范围：
+
+                        <span id="speakerRangeCm">0.00-0.00 厘米</span>
+
+                        <span id="speakerRangeM">0.00-0.00 米</span>
+                    </div>
+                    <div class="unit">（基于45°-60°声场夹角计算）</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 折叠控制函数
+        function toggleCollapse(sectionId) {
+            const section = document.getElementById(sectionId);
+            section.classList.toggle('active');
+        }
+
+        // 基础计算函数
+        function calculate() {
+            const diagonal = parseFloat(document.getElementById('diagonal').value);
+            const ratio = document.getElementById('ratio').value.split(':').map(Number);
+            
+            const [widthRatio, heightRatio] = ratio;
+            const aspectRatio = widthRatio / heightRatio;
+
+            const diagonalSquared = Math.pow(aspectRatio, 2) + 1;
+            const sqrt = Math.sqrt(diagonalSquared);
+            
+            const widthInch = (diagonal * aspectRatio) / sqrt;
+            const heightInch = diagonal / sqrt;
+
+            const widthCm = widthInch * 2.54;
+            const heightCm = heightInch * 2.54;
+            const widthMeters = widthInch * 0.0254;
+
+            const calculateDistance = degrees => {
+                const radians = degrees * (Math.PI / 180) / 2;
+                return (widthMeters / 2) / Math.tan(radians);
+            };
+
+            document.getElementById('widthInch').textContent = widthInch.toFixed(2);
+            document.getElementById('widthCm').textContent = widthCm.toFixed(2);
+            document.getElementById('heightInch').textContent = heightInch.toFixed(2);
+            document.getElementById('heightCm').textContent = heightCm.toFixed(2);
+            document.getElementById('distance60').textContent = calculateDistance(60).toFixed(2);
+            document.getElementById('distance45').textContent = calculateDistance(45).toFixed(2);
+            document.getElementById('distance36').textContent = calculateDistance(36).toFixed(2);
+        }
+
+        // 高级计算函数
+        function calculateFromDistance() {
+            const distanceCm = parseFloat(document.getElementById('distance_cm').value);
+            const angle = parseFloat(document.getElementById('angle').value);
+            const ratio = document.getElementById('ratioReverse').value.split(/[:]/).map(Number);
+            
+            const distanceM = distanceCm / 100;
+            const radians = angle * (Math.PI / 180) / 2;
+            
+            const screenWidthM = 2 * distanceM * Math.tan(radians);
+            const screenWidthCm = screenWidthM * 100;
+            const aspectRatio = ratio[0] / ratio[1];
+            const screenHeightCm = screenWidthCm / aspectRatio;
+            const diagonalInch = Math.sqrt(screenWidthCm**2 + screenHeightCm**2) / 2.54;
+
+            document.getElementById('resultDiagonal').textContent = diagonalInch.toFixed(1);
+            document.getElementById('resultDimensions').textContent = 
+                `${screenWidthCm.toFixed(1)}×${screenHeightCm.toFixed(1)} cm`;
+        }
+
+        function calcFromWidth() {
+            const widthCm = parseFloat(document.getElementById('inputWidth').value);
+            const ratio = document.getElementById('ratioCalc').value.split(/[:]/).map(Number);
+            const aspect = ratio[0] / ratio[1];
+            
+            const heightCm = widthCm / aspect;
+            const diagonalInch = Math.sqrt(widthCm**2 + heightCm**2) / 2.54;
+            
+            document.getElementById('calcDiagonal').textContent = diagonalInch.toFixed(1);
+            document.getElementById('calcDimensions').textContent = 
+                `${widthCm.toFixed(1)}×${heightCm.toFixed(1)} cm`;
+        }
+
+        function calcFromHeight() {
+            const heightCm = parseFloat(document.getElementById('inputHeight').value);
+            const ratio = document.getElementById('ratioCalc').value.split(/[:]/).map(Number);
+            const aspect = ratio[0] / ratio[1];
+            
+            const widthCm = heightCm * aspect;
+            const diagonalInch = Math.sqrt(widthCm**2 + heightCm**2) / 2.54;
+            
+            document.getElementById('calcDiagonal').textContent = diagonalInch.toFixed(1);
+            document.getElementById('calcDimensions').textContent = 
+                `${widthCm.toFixed(1)}×${heightCm.toFixed(1)} cm`;
+        }
+
+        // 音箱计算函数
+        function calculateSpeakerPosition() {
+            const distanceCm = parseFloat(document.getElementById('listeningDistance').value);
+            const distanceM = distanceCm / 100;
+
+            const calculateWidth = angle => {
+                const radians = angle * (Math.PI / 180) / 2;
+                return 2 * distanceM * Math.tan(radians);
+            };
+
+            const width45 = calculateWidth(45);
+            const width60 = calculateWidth(60);
+
+            const width45Cm = width45 * 100;
+            const width60Cm = width60 * 100;
+
+            const [minCm, maxCm] = [Math.min(width45Cm, width60Cm), Math.max(width45Cm, width60Cm)].map(v => v.toFixed(2));
+            const [minM, maxM] = [Math.min(width45, width60), Math.max(width45, width60)].map(v => v.toFixed(2));
+            
+            document.getElementById('speakerRangeCm').textContent = `${minCm}-${maxCm} 厘米`;
+            document.getElementById('speakerRangeM').textContent = `${minM}-${maxM} 米`;
+        }
+    </script>
+</body>
+<!-- 杜比全景声模块 -->
+<div class="collapsible" id="atmosCalc">
+    <div class="collapsible-header" onclick="toggleCollapse('atmosCalc')">
+        <h2>天空音箱摆位计算 <span class="arrow">▼</span></h2>
+    </div>
+    <div class="collapsible-content">
+        <div class="calculator-content">
+            <div class="input-group">
+                <label>房间参数：</label>
+                <div style="display: grid; gap: 10px; grid-template-columns: 1fr 1fr 1fr;">
+                    <input type="number" id="viewingDistance" placeholder="观影距离 (厘米)" step="1">
+                    <input type="number" id="ceilingHeight" placeholder="层高 (厘米)" step="1">
+                    <input type="number" id="earHeight" placeholder="听音高度 (厘米)" step="1">
+                </div>
+            </div>
+
+            <button onclick="calculateAtmos()">计算位置</button>
+
+            <div class="results">
+                <h3>推荐安装位置（距离影视墙）</h3>
+                <div class="result-item">
+                    前置天空声道：
+
+                    <span id="frontRange">0.00-0.00</span> 米
+                </div>
+                <div class="result-item">
+                    后置天空声道：
+
+                    <span id="rearRange">0.00-0.00</span> 米
+                </div>
+                <div class="unit">
+                    计算标准：
+
+                    • 当前听音高度：<span id="currentEarHeight">1.10</span>米
+
+                    • 有效角度范围：30°-55°（前置）/125°-150°（后置）
+
+                    • 计算结果含安装公差
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function calculateAtmos() {
+    // 获取输入值并转换单位
+    const D = parseFloat(document.getElementById('viewingDistance').value) / 100; // 转米
+    const H = parseFloat(document.getElementById('ceilingHeight').value) / 100;   // 转米
+    const earHeight = parseFloat(document.getElementById('earHeight').value) / 100; // 转米
+    
+    // 验证输入
+    if(H <= earHeight) return alert("层高必须大于听音高度");
+    if(earHeight <= 0) return alert("听音高度必须大于0");
+    if(isNaN(D) || D <=0) return alert("请输入有效的观影距离");
+
+    // 角度转换函数（图示角度转实际仰角）
+    const convertAngle = (angle) => angle > 90 ? 180 - angle : angle;
+
+    // 计算投影距离
+    const calcProjection = (angle) => {
+        const radians = angle * (Math.PI/180);
+        return (H - earHeight) / Math.tan(radians);
+    };
+
+    // 计算实际位置
+    const frontAngles = [30, 55];
+    const rearAngles = [125, 150];
+    
+    const frontMaxProj = calcProjection(convertAngle(frontAngles[0]));
+    const frontMinProj = calcProjection(convertAngle(frontAngles[1]));
+    const rearMinProj = calcProjection(convertAngle(rearAngles[0]));
+    const rearMaxProj = calcProjection(convertAngle(rearAngles[1]));
+
+    const frontMin = Math.max(0, D - frontMaxProj).toFixed(2);
+    const frontMax = Math.max(0, D - frontMinProj).toFixed(2);
+    const rearMin = (D + rearMinProj).toFixed(2);
+    const rearMax = (D + rearMaxProj).toFixed(2);
+
+    // 更新显示
+    document.getElementById('frontRange').textContent = `${frontMin}~${frontMax}`;
+    document.getElementById('rearRange').textContent = `${rearMin}~${rearMax}`;
+    document.getElementById('currentEarHeight').textContent = earHeight.toFixed(2);
+}
+</script>
+</html>
